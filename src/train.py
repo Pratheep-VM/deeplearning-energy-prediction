@@ -35,7 +35,7 @@ def calculate_metrics(y_true, y_pred):
     
     return {'MAE': mae, 'RMSE': rmse, 'MAPE': mape}
 
-def train_deep_model(model, X_train, y_train, X_test, y_test, epochs=50, batch_size=64, model_name="best_model.h5"):
+def train_deep_model(model, X_train, y_train, X_test, y_test, epochs=50, batch_size=64, model_name="trained_model.h5"):
     """
     Trains the deep learning model with Early Stopping to prevent overfitting.
     Saves the best weights to the /models/ folder.

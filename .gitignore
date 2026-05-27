@@ -42,10 +42,6 @@ data/processed/
 *.xls
 *.xlsx
 
-# Models
-models/
-*.h5
-*.keras
 
 # IDEs
 .vscode/
