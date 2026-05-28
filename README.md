@@ -3,6 +3,9 @@
 ## Overview
 This project focuses on predicting the energy consumption of appliances in a low-energy building using a multivariate time-series dataset. The pipeline encompasses robust data preprocessing, temporal feature engineering, and the implementation of Deep Learning models (LSTM and GRU) to forecast energy usage accurately.
 
+### Model Architecture
+![LSTM Architecture Diagram](reports/model_architecture.png)
+
 ## Methodology & Engineering Choices
 
 ### 1. Data Preprocessing
