@@ -1,59 +1,59 @@
 # Appliance Energy Prediction Using Deep Learning
 
-## Overview
-This project focuses on predicting the energy consumption of appliances in a low-energy building using a multivariate time-series dataset. The pipeline encompasses robust data preprocessing, temporal feature engineering, and the implementation of Deep Learning models (LSTM and GRU) to forecast energy usage accurately.
+## Project Overview
+This project predicts energy consumption of appliances in a low-energy building using a multivariate time-series dataset. The pipeline includes data preprocessing, temporal feature engineering, and Deep Learning models (LSTM and GRU) to forecast energy usage.
 
 ### Model Architecture
 ![LSTM Architecture Diagram](reports/model_architecture.png)
 
-## Methodology & Engineering Choices
+## What I Did
 
-### 1. Data Preprocessing
-- **Missing Values & Noise:** Interpolated missing values temporally. Dropped strictly random variables (`rv1`, `rv2`) to reduce noise.
-- **Outlier Handling:** Applied Winsorization at the 99th percentile to cap extreme energy spikes, maintaining model stability.
-- **Data Leakage Prevention:** `MinMaxScaler` was fitted **strictly on the training set** and applied to the test set. This ensures no future data distribution information leaks into the training phase.
+### 1. Data Prep
+- **Missing Values & Noise:** I used time-based interpolation to fill missing values and dropped `rv1` and `rv2` since they seemed to just be random noise.
+- **Outliers:** I applied Winsorization at the 99th percentile to cap some of the extreme energy spikes so they wouldn't throw off the model.
+- **Scaling:** Used `MinMaxScaler`, but I made sure to fit it **only on the training set** to prevent data leakage into the test set.
 
 ### 2. Feature Engineering
-Time-series forecasting requires explicit temporal features. We engineered:
-- **Datetime Components:** Hour, day of the week, and weekend binary flags.
-- **Rolling & Lagged Features:** Implemented 1-hour and 3-hour rolling averages. **Crucially, we applied a `.shift(1)` operation** prior to rolling calculations to ensure the model never accidentally targets current-interval data (preventing temporal leakage).
-- **Interaction Terms:** Created domain-specific features, such as the indoor/outdoor temperature differential (`T1 - T_out`), which directly impacts HVAC/heating load.
+Since time-series forecasting needs explicit time features, I added a few things:
+- **Datetime Features:** Hour, day of the week, and weekend flags. I also added some sine/cosine transformations so the neural net understands the cyclical nature of time.
+- **Rolls & Lags:** Computed 1-hour and 3-hour rolling averages. **Importantly, I added a `.shift(1)` step** before rolling to make sure the model never accidentally looks at current-interval data (which would be cheating).
+- **Interactions:** Added some simple domain features like indoor vs outdoor temperature difference (`T1 - T_out`), which directly impacts heating/cooling.
 
-### 3. Model Architecture
-- **Data Formatting:** Transformed tabular 2D pandas data into the 3D tensor format `(batch_size, time_steps, features)` required by Keras recurrent layers. Used a sliding window approach with `time_steps=6` (1 hour of historical context context).
-- **LSTM / GRU:** Deployed Long Short-Term Memory (LSTM) networks to capture non-linear temporal dependencies. 
-- **Regularization:** Integrated `Dropout(0.2)` layers to organically prevent overfitting by dropping 20% of neuron connections during training.
-- **Training Constraints:** Utilized the `Adam` optimizer with `Mean Squared Error` loss (which heavily penalizes large forecasting errors) and `EarlyStopping` monitoring validation loss to halt training when the model stops generalizing.
+### 3. Modeling
+- **Data Formatting:** Converted the 2D pandas data into 3D tensors `(batch_size, time_steps, features)` for the Keras recurrent layers, using a sliding window of `time_steps=6` (1 hour of past data).
+- **LSTM / GRU:** Tried out Long Short-Term Memory (LSTM) and GRU networks to catch those non-linear trends.
+- **Regularization:** Used `Dropout(0.2)` to drop 20% of the nodes during training to prevent overfitting.
+- **Training:** Used the Adam optimizer with MSE loss and added an EarlyStopping callback to stop training when the validation loss stopped improving.
 
 ## Project Structure
 ```text
 ├── data/ 
-│   ├── raw/                 # Put the downloaded dataset here 
-│   └── processed/           # Processed datasets ready for modeling
+│   ├── raw/                 # Download the dataset here 
+│   └── processed/           # Cleaned data goes here
 ├── notebooks/ 
-│   ├── EDA.ipynb            # Exploratory Data Analysis & visual checks
-│   └── Model_Training_Pipeline.ipynb # End-to-end execution script
+│   ├── EDA.ipynb            # Data exploration and plots
+│   └── Model_Training_Pipeline.ipynb # Main training script
 ├── src/ 
-│   ├── data_preprocessing.py # Cleaning, outlier handling, and scaling
-│   ├── feature_engineering.py # Temporal feature extraction
-│   ├── model.py             # Model definitions (Baseline, LSTM, GRU)
-│   └── train.py             # Sequence generation and training loop
-├── models/                  # Saved model artifacts (.h5)
-├── reports/                 # Final assessment reports
-├── requirements.txt         # Project dependencies
-└── README.md                # Project documentation
+│   ├── data_preprocessing.py # Cleaning, outlier handling, scaling
+│   ├── feature_engineering.py # Time features, lags, rolling averages
+│   ├── model.py             # LSTM and baseline model definitions
+│   └── train.py             # Training loop and evaluation
+├── models/                  # Saved .h5 models
+├── reports/                 # Results and writeups
+├── requirements.txt         # Dependencies
+└── README.md                # You are here
 ```
 
-## Setup & Execution
+## How to Run
 
-1. **Environment Setup**:
+1. **Set up your environment**:
    ```powershell
    python -m venv .venv
    .\.venv\Scripts\Activate.ps1
    pip install -r requirements.txt
    ```
-2. **Data Placement**: 
-   Download the "Appliance Energy Prediction Dataset" and save it in the `data/raw/` directory as `energy_data_set.csv`.
+2. **Add the data**: 
+   Download the "Appliance Energy Prediction Dataset" and save it as `energy_data_set.csv` in the `data/raw/` folder.
 
-3. **Running the Pipeline**:
-   Open VS Code, select your `.venv` python interpreter, and run the `notebooks/Model_Training_Pipeline.ipynb` notebook from top to bottom. It will map through the `src/` modules, train the LSTM, and output the final prediction graphs and Evaluation Metrics (MAE, RMSE, MAPE).
+3. **Run it**:
+   Open VS Code, activate the `.venv`, and just run all cells in `notebooks/Model_Training_Pipeline.ipynb`. It'll process the data, train the LSTM, and print out the final MAE and RMSE scores.

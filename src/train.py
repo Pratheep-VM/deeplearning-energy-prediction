@@ -1,6 +1,6 @@
 """
-Model Training and Evaluation Module
-Handles creating 3D sequences, training loops, early stopping, and evaluation.
+Train and Evaluate
+Scripts to handle 3D sequence creation, the main training loop, and scoring.
 """
 
 from sklearn.metrics import mean_absolute_error, mean_squared_error
@@ -9,27 +9,26 @@ import numpy as np
 
 def create_sequences(data, target_col_index, time_steps=6):
     """
-    Transforms 2D tabular data into the 3D sliding-window format required by LSTMs/GRUs.
-    Returns X (features over time) and y (the target to predict at the next step).
+    Format 2D table into 3D sliding windows for the LSTM.
+    Returns X (history) and y (next step target).
     """
     X, y = [], []
-    # Slide the window down the dataset
     for i in range(len(data) - time_steps):
-        # Extract the block of 'time_steps' rows
+        # grab 'time_steps' block
         X.append(data[i:(i + time_steps), :])
-        # The target is the value exactly one step after the block ends
+        # target is the row right after the block
         y.append(data[i + time_steps, target_col_index])
         
     return np.array(X), np.array(y)
 
 def calculate_metrics(y_true, y_pred):
     """
-    Calculates regression evaluation metrics.
+    Calculate MAE, RMSE, and MAPE.
     """
     mae = mean_absolute_error(y_true, y_pred)
     rmse = np.sqrt(mean_squared_error(y_true, y_pred))
     
-    # MAPE (Mean Absolute Percentage Error) needs protection against division by zero
+    # avoid division by zero for MAPE
     epsilon = 1e-10 
     mape = np.mean(np.abs((y_true - y_pred) / (y_true + epsilon))) * 100
     
@@ -37,26 +36,25 @@ def calculate_metrics(y_true, y_pred):
 
 def train_deep_model(model, X_train, y_train, X_test, y_test, epochs=50, batch_size=64, model_name="trained_model.h5"):
     """
-    Trains the deep learning model with Early Stopping to prevent overfitting.
-    Saves the best weights to the /models/ folder.
+    Run training fit loop with early stopping.
     """
-    # Callback 1: Stop training if the validation loss doesn't improve for 10 epochs
+    # Stop if validation loss doesn't improve for 10 epochs
     early_stop = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True, verbose=1)
     
-    # Callback 2: Save the physical model file to disk whenever it hits a new best score
+    # Save the best model physically
     checkpoint = ModelCheckpoint(f'../models/{model_name}', monitor='val_loss', save_best_only=True, verbose=0)
     
-    print(f"Starting training loop for {epochs} epochs...")
+    print(f"Starting training for {epochs} epochs...")
     history = model.fit(
         X_train, y_train,
         epochs=epochs,
         batch_size=batch_size,
         validation_data=(X_test, y_test),
         callbacks=[early_stop, checkpoint],
-        verbose=1 # Prints the progress bar
+        verbose=1
     )
     
     return history
 
 if __name__ == "__main__":
-    print("Training module contains pipeline logic. Please run the notebook pipeline instead.")
+    print("Run the Model_Training_Pipeline.ipynb notebook instead to start training.")

@@ -1,43 +1,42 @@
 # Final Report: Appliance Energy Prediction
 
-## 1. Executive Summary
-This project successfully developed a robust machine learning pipeline to predict appliance energy consumption using multivariate time-series data. By emphasizing strict data leakage prevention and leveraging advanced deep learning architectures (LSTM), the model is capable of accurately forecasting near-future energy demands based on historical usage and environmental factors.
+## 1. Quick Summary
+For this project, I built a machine learning pipeline to predict appliance energy consumption using multivariate time-series data. I focused heavily on preventing data leakage and used an LSTM deep learning model. The model does a pretty good job of forecasting short-term energy demand based on recent usage and weather constraints.
 
-## 2. Methodology
+## 2. What I Did
 
 ### Data Preprocessing
-- **Handling Missing Values:** Performed time-based interpolation to maintain temporal consistency without introducing artificial jumps.
-- **Noise Reduction:** Removed purely random variables (`rv1`, `rv2`) which offer no predictive power.
-- **Outlier Mitigation:** Winsorized the extreme upper 1% (99th percentile) of values to prevent volatile energy spikes from skewing the model’s gradients during training.
-- **Scaling Strategies:** Utilized `MinMaxScaler` globally, but **strictly fitted only on the training set**. This guaranteed zero temporal data leakage into the test set.
+- **Missing Values:** I used time-based interpolation to fill in any gaps so we didn't throw off the sequence.
+- **Noise:** Dropped the `rv1` and `rv2` columns since they were completely random variables and just added noise.
+- **Outliers:** I capped the top 1% of energy usage values (Winsorization). There were a few crazy spikes that I felt were messing up the model's training process.
+- **Scaling:** Used `MinMaxScaler`. I made sure to fit the scaler *only* on the training data so that test set stats didn't accidentally leak into training.
 
 ### Feature Engineering
-- **Temporal Extraction:** Extracted foundational time components (Hour, Day of Week, Weekend Flags).
-- **Rolling Windows & Lags:** Applied 1-hour and 3-hour rolling averages. Crucially, a `.shift(1)` operation was injected prior to rolling calculations to ensure that the target variable of the current prediction window was not accidentally included in the historical average.
-- **Interaction Effects:** Engineered a `Temp_diff_indoor_outdoor` feature (`T1 - T_out`), directly capturing the thermodynamic strain on HVAC systems.
+- **Time Features:** Added basic stuff like Hour, Day of Week, and a Weekend indicator. I also added some sine/cosine cyclical encoding since neural networks don't naturally understand that 11 PM and 12 AM are right next to each other.
+- **Rolling Windows & Lags:** Created 1-hour and 3-hour rolling averages. The most important part here was doing a `.shift(1)` before the rolling stats to make sure the model isn't looking at "current" data when guessing the "current" target.
+- **Interactions:** Added a `Temp_diff_indoor_outdoor` feature (`T1 - T_out`) to help capture heating/cooling load nicely.
 
-### Model Architecture & Training
-- **Data Structuring:** Sliced the flat 2D dataset into 3D sequence arrays: `(batch_size, time_steps=6, features)`. This effectively gave the model a 1-hour memory window of continuous past context to base its predictions upon.
-- **Architecture Validation:** Developed a baseline Random Forest Regressor to anchor performance. Then constructed a Deep Learning architecture utilizing a Long Short-Term Memory (LSTM) network with hidden sizes of `64` and `32`.
-- **Regularization:** Inserted `Dropout(0.2)` layers between LSTM units to organically prevent overfitting by deactivating 20% of neuron connections intermittently.
-- **Optimization Strategy:** Trained via the `Adam` optimizer (learning rate adaptive) using `Mean Squared Error` (MSE) loss to aggressively penalize major forecasting deviations. Incorporated an `EarlyStopping` callback to halt training when general validation loss plateaued.
+### Modeling
+- **Data Shape:** Shifted the 2D tabular data into 3D arrays: `(batch_size, time_steps=6, features)`. This gave the model 1 hour of past context per prediction block.
+- **Setup:** I started with a Random Forest Regressor just to get a baseline score, and then built an LSTM network with hidden sizes of 64 and 32.
+- **Regularization:** Added `Dropout(0.2)` layers to drop 20% of the neurons each pass, which helped keep the model from overfitting.
+- **Training:** Used the Adam optimizer and Mean Squared Error (MSE). I also threw in an `EarlyStopping` callback to automatically stop training once the validation loss stopped improving.
 
-## 3. Results & Evaluation
+## 3. Results
 
 **Baseline Model (Random Forest)**
-- Mean Absolute Error (MAE): `0.1227`
-- Root Mean Squared Error (RMSE): `0.1760`
+- Mean Absolute Error (MAE): 0.1227
+- Root Mean Squared Error (RMSE): 0.1760
 
 **Deep Learning Model (LSTM)**
-- Mean Absolute Error (MAE): `0.0439`
-- Root Mean Squared Error (RMSE): `0.0992`
+- Mean Absolute Error (MAE): 0.0439
+- Root Mean Squared Error (RMSE): 0.0992
 
-**Visual Output:**
-The actual vs. predicted plot demonstrates that the LSTM effectively tracks the cyclical surges of daily energy consumption, whereas it heavily dampens erratic, unexplainable noise, proving a generalized understanding of the underlying building physics.
+The LSTM performed significantly better than the baseline. Looking at the plots, it mostly catches the daily spikes really well while ignoring the small erratic noise.
 
-## 4. Conclusion
-The methodology illustrates an industrial-standard approach to time-series forecasting. By isolating data leakage factors, transforming tabular data into spatial-temporal structures, and carefully regularizing a deep neural network, the model transitions from a raw data processor to a highly stable forecasting mechanism. 
+## 4. Final Thoughts
+Overall, the pipeline works well for time-series forecasting. Handling the temporal data shift correctly and throwing in cyclical feature engineering made the biggest difference in keeping the LSTM stable.
 
-### Future Improvements
-1. Integrating external, asynchronous API data (such as localized public holiday sets or macro-weather radar data) to assist the network during non-standard daily routines.
-2. Expanding hyperparameter search bounds specifically over the `time_steps` variable (testing 2-hour or 4-hour windows) to capture macro-level daily habits deeply.
+### Next Steps / Ideas
+1. It would be cool to add some external API data (like local holidays) since behaviors change drastically during off-days.
+2. I'd like to try running this with different `time_steps` (maybe a 2-hour or 4-hour lookback window) to see if having more historical context improves things further.
